@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>wall.png</file>
+        <file>table.png</file>
+	<file>paddle.png</file>
+        <file>splat.wav</file>
+        <file>music.wav</file>
+    </qresource>
+</RCC>
