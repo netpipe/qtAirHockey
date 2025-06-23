@@ -50,7 +50,7 @@ public:
 
 
         // Hit sound
-        hitSound = new QSound(":/splat.wav", this);
+        hitSound = new QSound(":/hit.wav", this);
 
         setMouseTracking(true);  // Allows mouseMoveEvent without clicking
 
