@@ -12,6 +12,10 @@
 #include <QVBoxLayout>
 #include <cmath>
 
+QPointF prevPlayerPaddle;
+QPointF prevAiPaddle;
+
+
 const int wallHeight = 20;
 const int goalWidth = 30;
 const int goalHeight = 100;
@@ -122,30 +126,64 @@ public:
         puck += puckVel;
 
         // Paddle collision
-        auto checkCollision = [&](QPointF paddlePos) {
-            QPointF diff = puck - paddlePos;
-            qreal dist = std::hypot(diff.x(), diff.y());
-            if (dist <= paddleRadius + puckRadius) {
-                QPointF normal = diff / dist;
-                qreal dot = QPointF::dotProduct(puckVel, normal);
-                puckVel = puckVel - 2 * dot * normal;
 
-                // Nudge puck away to prevent sticking
-                puck = paddlePos + normal * (paddleRadius + puckRadius + 1);
-                hitSound->play();
-            }
-            if (QLineF(puck, paddlePos).length() <= paddleRadius + puckRadius) {
-                QPointF normal = (puck - paddlePos);
-                normal /= std::hypot(normal.x(), normal.y());
-                qreal dot = QPointF::dotProduct(puckVel, normal);
-                QPointF reflection = puckVel - 2 * dot * normal;
-                puckVel = reflection;
-                hitSound->play();
-            }
+//            if (dist <= paddleRadius + puckRadius) {
+//                QPointF normal = diff / dist;
+//                qreal dot = QPointF::dotProduct(puckVel, normal);
+//                puckVel = puckVel - 2 * dot * normal;
+
+//                // Nudge puck away to prevent sticking
+//                puck = paddlePos + normal * (paddleRadius + puckRadius + 1);
+//                hitSound->play();
+//            }
+//            if (QLineF(puck, paddlePos).length() <= paddleRadius + puckRadius) {
+//                QPointF normal = (puck - paddlePos);
+//                normal /= std::hypot(normal.x(), normal.y());
+//                qreal dot = QPointF::dotProduct(puckVel, normal);
+//                QPointF reflection = puckVel - 2 * dot * normal;
+//                puckVel = reflection;
+//                hitSound->play();
+//            }
+
+
+
+
+            auto checkCollision = [&](QPointF paddlePos, QPointF paddleVel) {
+                QPointF toPuck = puck - paddlePos;
+                qreal dist = std::hypot(toPuck.x(), toPuck.y());
+
+                if (dist < puckRadius + paddleRadius) {
+                    QPointF normal = toPuck / dist;
+                    puck = paddlePos + normal * (puckRadius + paddleRadius + 0.1); // separate
+
+                    // Reflect puck velocity
+                    qreal speedAlongNormal = QPointF::dotProduct(puckVel, normal);
+                    QPointF impulse = normal * speedAlongNormal * 2.0;
+                    puckVel -= impulse;
+
+                    // Add only the paddle's push toward the puck
+                    qreal pushPower = QPointF::dotProduct(paddleVel, normal);
+                    if (pushPower > 0) {
+                        puckVel += normal * pushPower * 0.5; // scale as needed
+                    }
+
+                    hitSound->play();
+                }
+       //     };
+
+
+
+            prevPlayerPaddle = playerPaddle;
+            prevAiPaddle = aiPaddle;
+
+
         };
-
-        checkCollision(playerPaddle);
-        checkCollision(aiPaddle);
+    QPointF playerVel = playerPaddle - prevPlayerPaddle;
+    QPointF aiVel = aiPaddle - prevAiPaddle;
+    checkCollision(playerPaddle, playerVel);
+    checkCollision(aiPaddle, aiVel);
+     //   checkCollision(playerPaddle);
+     //   checkCollision(aiPaddle);
 
         // AI Movement
         float targetY = puck.y();
@@ -174,6 +212,26 @@ public:
         if (puck.y() <= puckRadius || puck.y() >= height() - puckRadius) {
             puckVel.setY(-puckVel.y());
             hitSound->play();
+        }
+
+        const qreal minWallBounceSpeed = 1.0; // tweakable
+
+        // Top wall
+        if (puck.y() - puckRadius < wallHeight) {
+            puck.setY(wallHeight + puckRadius);
+            if (std::abs(puckVel.y()) > minWallBounceSpeed) {
+                puckVel.ry() *= -1;
+                hitSound->play();
+            }
+        }
+
+        // Bottom wall
+        if (puck.y() + puckRadius > height() - wallHeight) {
+            puck.setY(height() - wallHeight - puckRadius);
+            if (std::abs(puckVel.y()) > minWallBounceSpeed) {
+                puckVel.ry() *= -1;
+                hitSound->play();
+            }
         }
 
         // If the puck hits the left post (top or bottom outside goal area)
