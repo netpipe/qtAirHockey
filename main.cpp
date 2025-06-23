@@ -125,29 +125,6 @@ public:
         // Puck movement
         puck += puckVel;
 
-        // Paddle collision
-
-//            if (dist <= paddleRadius + puckRadius) {
-//                QPointF normal = diff / dist;
-//                qreal dot = QPointF::dotProduct(puckVel, normal);
-//                puckVel = puckVel - 2 * dot * normal;
-
-//                // Nudge puck away to prevent sticking
-//                puck = paddlePos + normal * (paddleRadius + puckRadius + 1);
-//                hitSound->play();
-//            }
-//            if (QLineF(puck, paddlePos).length() <= paddleRadius + puckRadius) {
-//                QPointF normal = (puck - paddlePos);
-//                normal /= std::hypot(normal.x(), normal.y());
-//                qreal dot = QPointF::dotProduct(puckVel, normal);
-//                QPointF reflection = puckVel - 2 * dot * normal;
-//                puckVel = reflection;
-//                hitSound->play();
-//            }
-
-
-
-
             auto checkCollision = [&](QPointF paddlePos, QPointF paddleVel) {
                 QPointF toPuck = puck - paddlePos;
                 qreal dist = std::hypot(toPuck.x(), toPuck.y());
@@ -169,13 +146,8 @@ public:
 
                     hitSound->play();
                 }
-       //     };
-
-
-
             prevPlayerPaddle = playerPaddle;
             prevAiPaddle = aiPaddle;
-
 
         };
     QPointF playerVel = playerPaddle - prevPlayerPaddle;
@@ -234,35 +206,35 @@ public:
             }
         }
 
-        // If the puck hits the left post (top or bottom outside goal area)
-        if (puck.x() - puckRadius < goalWidth &&
-            (puck.y() < (height() - goalHeight) / 2 || puck.y() > (height() + goalHeight) / 2)) {
-            puck.setX(goalWidth + puckRadius);
+
+        // Define goal area range (shared for both goals)
+        qreal goalYTop = (height() - goalHeight) / 2;
+        qreal goalYBottom = goalYTop + goalHeight;
+        bool inGoalY = puck.y() > goalYTop && puck.y() < goalYBottom;
+        int wallThickness=1;
+        // Left wall (outside goal area only)
+        if (puck.x() - puckRadius < wallThickness && !inGoalY) {
+            puck.setX(wallThickness + puckRadius);
             puckVel.rx() *= -1;
             hitSound->play();
         }
 
-        // If the puck hits the right post
-        if (puck.x() + puckRadius > width() - goalWidth &&
-            (puck.y() < (height() - goalHeight) / 2 || puck.y() > (height() + goalHeight) / 2)) {
-            puck.setX(width() - goalWidth - puckRadius);
+        // Right wall (outside goal area only)
+        if (puck.x() + puckRadius > width() - wallThickness && !inGoalY) {
+            puck.setX(width() - wallThickness - puckRadius);
             puckVel.rx() *= -1;
             hitSound->play();
         }
 
         // Left goal
-        if (puck.x() - puckRadius < 0 &&
-            puck.y() > (height() - goalHeight) / 2 &&
-            puck.y() < (height() + goalHeight) / 2) {
-            // AI scores
+        if (puck.x() - puckRadius < 0 && inGoalY) {
+        //    aiScore++;
             resetPuck();
         }
 
         // Right goal
-        if (puck.x() + puckRadius > width() &&
-            puck.y() > (height() - goalHeight) / 2 &&
-            puck.y() < (height() + goalHeight) / 2) {
-            // Player scores
+        if (puck.x() + puckRadius > width() && inGoalY) {
+        //    playerScore++;
             resetPuck();
         }
 
